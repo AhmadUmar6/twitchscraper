@@ -42,7 +42,6 @@
             gap: 2rem;
         }
 
-        /* --- Header --- */
         .header {
             text-align: center;
             padding-bottom: 1rem;
@@ -65,7 +64,6 @@
             margin-top: 0.5rem;
         }
 
-        /* --- Search Controls --- */
         .search-controls {
             background: var(--glass-bg);
             border: var(--glass-border);
@@ -146,7 +144,6 @@
             transition: color 0.3s ease;
         }
 
-        /* --- Results --- */
         #resultsSection {
             display: none;
         }
@@ -365,16 +362,14 @@
     </div>
 
 <script>
-    // --- IMPORTANT ---
     const CLIENT_ID = 'fout2omlo8jhapopca0sxgskcdsrug';
     const CLIENT_SECRET = 'xjlz22ccgzsj7kj1v1prbnztqd02xl';
     let accessToken = null;
     let foundCreatorsData = [];
-    const foundUserIds = new Set(); // To prevent duplicates
+    const foundUserIds = new Set();
     let emailsFoundCount = 0;
     let totalChannelsProcessed = 0;
 
-    // Game IDs to search within
     const GAME_IDS = {
         'Just Chatting': '509658',
         'Sports': '518203',
@@ -383,7 +378,6 @@
         'EA Sports FC 24': '1745202732',
     };
 
-    // DOM Elements
     const statusEl = document.getElementById('status');
     const searchBtn = document.getElementById('searchButton');
     const resultsSection = document.getElementById('resultsSection');
@@ -394,7 +388,6 @@
         statusEl.style.color = isError ? '#ff8080' : 'var(--text-color-dark)';
     }
 
-    // --- Authentication ---
     async function authenticateAPI() {
         if (accessToken) return true;
         setStatus('Authenticating with Twitch API...');
@@ -421,7 +414,6 @@
         }
     }
 
-    // --- Main Search Function ---
     async function findLiveStreams() {
         const keywordsInput = document.getElementById('keywords').value.trim();
         if (!keywordsInput) {
@@ -429,7 +421,6 @@
             return;
         }
 
-        // --- Reset UI ---
         searchBtn.disabled = true;
         searchBtn.textContent = 'Searching...';
         resultsSection.style.display = 'block';
@@ -448,7 +439,6 @@
         const searchKeywords = keywordsInput.split(',').map(k => k.trim().toLowerCase()).filter(k => k);
         const language = document.getElementById('language').value;
 
-        // --- Sequential Search ---
         for (const [gameName, gameId] of Object.entries(GAME_IDS)) {
             await fetchAndProcessStreamsForCategory(gameId, gameName, language, searchKeywords);
         }
@@ -462,10 +452,9 @@
         searchBtn.textContent = '⚡ Find Streamers';
     }
     
-    // --- Sequential & Paginated Fetching ---
     async function fetchAndProcessStreamsForCategory(gameId, gameName, language, keywords) {
         const STREAMS_PER_PAGE = 100;
-        const MAX_PAGES = 10; // Fetches up to 1000 streams
+        const MAX_PAGES = 10;
         let cursor = null;
         let page = 1;
 
@@ -479,12 +468,10 @@
                 const data = await fetchTwitchAPI('streams', params);
                 const streams = data.data || [];
                 
-                // Process streams in real-time
                 for (const stream of streams) {
                     const title = stream.title.toLowerCase();
                     if (keywords.some(kw => title.includes(kw)) && !foundUserIds.has(stream.user_id)) {
                         foundUserIds.add(stream.user_id);
-                        // Don't wait for this to finish, process and render immediately
                         processAndRenderCreator(stream);
                     }
                 }
@@ -492,25 +479,22 @@
                 cursor = data.pagination?.cursor;
                 if (!cursor || streams.length < STREAMS_PER_PAGE) {
                     console.log(`No more pages for ${gameName}.`);
-                    break; // Exit loop if no more pages
+                    break;
                 }
                 page++;
             } catch (error) {
                 setStatus(`Error fetching streams for ${gameName}: ${error.message}`, true);
-                break; // Stop fetching for this category on error
+                break;
             }
         }
     }
     
-    // --- Enhanced Email Extraction ---
     function extractEmailsFromText(text) {
         if (!text) return [];
         
-        // More comprehensive email regex
         const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
         const emails = text.match(emailRegex) || [];
         
-        // Also look for common patterns like "contact at domain dot com"
         const textPattern = /contact\s+(?:at|@)\s+([A-Za-z0-9.-]+)\s+(?:dot|\.)\s+([A-Za-z]{2,})/gi;
         const textMatches = [...text.matchAll(textPattern)];
         
@@ -519,10 +503,9 @@
             emails.push(email);
         });
         
-        return [...new Set(emails)]; // Remove duplicates
+        return [...new Set(emails)];
     }
 
-    // --- Process and Render Individual Creator in Real-Time ---
     async function processAndRenderCreator(stream) {
         totalChannelsProcessed++;
         try {
@@ -536,12 +519,10 @@
             const followerCount = followersData.total || 0;
             const channelData = channelInfo.data[0];
             
-            // Extract emails from multiple sources
             const channelDescription = channelData?.description || '';
             const userBio = user?.description || '';
             const streamTitle = stream.title || '';
             
-            // Combine all text sources for email extraction
             const allText = `${channelDescription} ${userBio} ${streamTitle}`;
             const extractedEmails = extractEmailsFromText(allText);
             
@@ -550,7 +531,6 @@
                 console.log(`Found emails for ${stream.user_name}:`, extractedEmails);
             }
             
-            // Debug logging
             if (totalChannelsProcessed <= 5) {
                 console.log(`Debug - Channel ${stream.user_name}:`);
                 console.log('Channel description:', channelDescription);
@@ -575,7 +555,6 @@
         }
     }
 
-    // --- Rendering and DOM Manipulation ---
     function formatNumber(num) {
         return num.toLocaleString('en-US');
     }
@@ -585,7 +564,6 @@
         card.className = 'creator-card';
         card.setAttribute('data-followers', creator.follower_count);
 
-        // Format emails for display
         const emailsDisplay = creator.emails && creator.emails.length > 0 
             ? `<p><strong>📧 Contact:</strong> ${creator.emails.map(email => `<a href="mailto:${email}" style="color: var(--primary-color); text-decoration: none;">${email}</a>`).join(', ')}</p>`
             : '<p><strong>📧 Contact:</strong> <span style="color: var(--text-color-dark);">No email found</span></p>';
@@ -612,7 +590,6 @@
         resultsContainer.appendChild(card);
     }
     
-    // --- Filtering Logic ---
     function filterResults() {
         const filterValue = document.getElementById('followerFilter').value;
         const cards = document.querySelectorAll('.creator-card');
@@ -645,7 +622,6 @@
         }
     }
 
-    // --- API Helper ---
     async function fetchTwitchAPI(endpoint, params = {}) {
         const url = new URL(`https://api.twitch.tv/helix/${endpoint}`);
         Object.entries(params).forEach(([key, value]) => url.searchParams.append(key, value));
@@ -662,7 +638,6 @@
         return response.json();
     }
     
-    // --- CSV Export ---
     function exportToCSV() {
         if (foundCreatorsData.length === 0) {
             alert("No data to export. Please run a search first.");
@@ -675,7 +650,7 @@
             c.user_login, 
             c.follower_count, 
             c.viewer_count,
-            `"${c.title.replace(/"/g, '""')}"`, // Escape double quotes
+            `"${c.title.replace(/"/g, '""')}"`,
             c.language, 
             c.game_name, 
             `https://twitch.tv/${c.user_login}`,
